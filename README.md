@@ -2,6 +2,7 @@
 
 [![Build & Release macOS App](https://github.com/zhucl1006/ScreenInk/actions/workflows/build-and-release.yml/badge.svg)](https://github.com/zhucl1006/ScreenInk/actions/workflows/build-and-release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/zhucl1006/ScreenInk?label=Download&color=brightgreen)](https://github.com/zhucl1006/ScreenInk/releases/latest)
+[![YouTube Demo](https://img.shields.io/badge/YouTube-40s%20Demo-FF0000?logo=youtube&logoColor=white)](https://youtu.be/pLPZCzZh1wY)
 [![Platform](https://img.shields.io/badge/macOS-13.0%2B%20(Apple%20Silicon%20%26%20Intel)-blue)](#下载与安装)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -14,15 +15,17 @@
 ## 产品演示（40 秒速览）
 
 <p align="center">
-  <a href="https://github.com/zhucl1006/ScreenInk/raw/main/docs/media/screenink-demo.mp4" title="点击观看/下载 40 秒完整带声演示视频">
+  <a href="https://youtu.be/pLPZCzZh1wY" title="在 YouTube 观看 1080p 完整带声演示短片">
     <img src="docs/media/screenink-demo.gif" alt="ScreenInk 产品演示动画" width="820" />
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/zhucl1006/ScreenInk/raw/main/docs/media/screenink-demo.mp4"><strong>▶ 观看 / 下载完整 40 秒高清带声演示视频（MP4）</strong></a>
+  <a href="https://youtu.be/pLPZCzZh1wY"><strong>▶ 在 YouTube 观看 1080p 完整演示视频</strong></a>
   &nbsp;·&nbsp;
-  <a href="https://github.com/zhucl1006/ScreenInk/releases/latest"><strong>⬇ 前往 Releases 下载最新版本（DMG / ZIP）</strong></a>
+  <a href="https://github.com/zhucl1006/ScreenInk/raw/main/docs/media/screenink-demo.mp4"><strong>本地直链（MP4）</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/zhucl1006/ScreenInk/releases/latest"><strong>⬇ 下载最新版本（DMG / ZIP）</strong></a>
 </p>
 
 ---
