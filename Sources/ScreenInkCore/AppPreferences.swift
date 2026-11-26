@@ -28,8 +28,8 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         autoFadeHoldSeconds: 2.0,
         autoFadeDurationSeconds: 0.75,
         showToolbarOnActivate: false,
-        cursorHighlightDiameter: 54.0,
-        cursorHighlightOpacity: 0.35,
+        cursorHighlightDiameter: 68.0,
+        cursorHighlightOpacity: 0.45,
         cursorFollowAnnotationColor: true,
         cursorCustomColor: .yellow,
         cursorClickRipple: true

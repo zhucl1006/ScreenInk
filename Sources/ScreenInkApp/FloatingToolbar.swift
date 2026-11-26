@@ -124,7 +124,7 @@ struct FloatingToolbarView: View {
             divider
 
             iconButton(systemName: "gearshape", help: "偏好设置 (⌘,)", action: onOpenSettings)
-            iconButton(systemName: "xmark.circle.fill", help: "退出批注 (Esc / ⌥A)", action: onExitAnnotating)
+            iconButton(systemName: "xmark.circle.fill", help: "退出批注 (Esc / ⌘1)", action: onExitAnnotating)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

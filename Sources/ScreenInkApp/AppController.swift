@@ -60,22 +60,22 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
 
         let menu = NSMenu()
 
-        let cleanItem = NSMenuItem(title: "无工具栏批注（矩形）", action: #selector(menuAnnotateWithoutControls), keyEquivalent: "a")
-        cleanItem.keyEquivalentModifierMask = [.option]
+        let cleanItem = NSMenuItem(title: "无工具栏矩形批注", action: #selector(menuAnnotateWithoutControls), keyEquivalent: "1")
+        cleanItem.keyEquivalentModifierMask = [.command]
         cleanItem.target = self
         menu.addItem(cleanItem)
         annotateCleanMenuItem = cleanItem
 
-        let withToolbarItem = NSMenuItem(title: "带工具栏批注", action: #selector(menuAnnotateWithControls), keyEquivalent: "A")
-        withToolbarItem.keyEquivalentModifierMask = [.option, .shift]
+        let withToolbarItem = NSMenuItem(title: "有工具栏矩形批注", action: #selector(menuAnnotateWithControls), keyEquivalent: "2")
+        withToolbarItem.keyEquivalentModifierMask = [.command]
         withToolbarItem.target = self
         menu.addItem(withToolbarItem)
         annotateToolbarMenuItem = withToolbarItem
 
         menu.addItem(.separator())
 
-        let cursorItem = NSMenuItem(title: "Highlight Cursor（光标高亮）", action: #selector(menuToggleHighlightCursor), keyEquivalent: "s")
-        cursorItem.keyEquivalentModifierMask = [.option]
+        let cursorItem = NSMenuItem(title: "点击高亮（脉动光环）", action: #selector(menuToggleHighlightCursor), keyEquivalent: "3")
+        cursorItem.keyEquivalentModifierMask = [.command]
         cursorItem.target = self
         menu.addItem(cursorItem)
         highlightCursorMenuItem = cursorItem
@@ -170,7 +170,7 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
             ?? NSImage(systemSymbolName: "pencil.tip.crop.circle", accessibilityDescription: "ScreenInk")
         image?.isTemplate = true
         button.image = image
-        button.toolTip = "ScreenInk — ⌥A 矩形高亮 | ⌥S 光标高亮"
+        button.toolTip = "ScreenInk — ⌘1 无工具栏矩形 | ⌘2 有工具栏矩形 | ⌘3 点击高亮"
     }
 
     private func updateMenuState() {
@@ -344,12 +344,16 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
 
         case .toggleAnnotateWithToolbar:
             if session.phase == .annotating && session.isToolbarVisible {
-                exitAnnotating()
+                if session.selectedTool != .rectangle {
+                    session.selectedTool = .rectangle
+                } else {
+                    exitAnnotating()
+                }
             } else {
-                startAnnotating(showToolbar: true, tool: session.selectedTool)
+                startAnnotating(showToolbar: true, tool: .rectangle)
             }
 
-        case .toggleHighlightCursor:
+        case .toggleClickHighlight:
             session.isCursorHighlightEnabled.toggle()
 
         case .clearAnnotations:
@@ -497,6 +501,7 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
 
     @objc private func handleScreenParametersChanged() {
         rebuildOverlayWindows()
+        cursorHighlightController.rebuildPanels()
     }
 }
 

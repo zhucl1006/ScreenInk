@@ -3,30 +3,30 @@ import Foundation
 
 /// 全局快捷键动作定义（任意应用生效，无需系统辅助功能权限）
 enum GlobalHotKeyAction: UInt32, CaseIterable {
-    /// ⌥A：开始/关闭 矩形高亮批注（默认无工具栏）
+    /// ⌘1：无工具栏矩形批注
     case toggleAnnotateClean = 1
-    /// ⌥⇧A：开始/关闭 带工具栏批注
+    /// ⌘2：有工具栏矩形批注
     case toggleAnnotateWithToolbar = 2
-    /// ⌥S：开启/关闭 Highlight Cursor 光标高亮模式
-    case toggleHighlightCursor = 3
+    /// ⌘3：点击高亮模式（点击时出现脉动光环后消失）
+    case toggleClickHighlight = 3
     /// ⌥C：清空屏幕停留标注
     case clearAnnotations = 4
 
     var keyCode: UInt32 {
         switch self {
-        case .toggleAnnotateClean: return UInt32(kVK_ANSI_A)
-        case .toggleAnnotateWithToolbar: return UInt32(kVK_ANSI_A)
-        case .toggleHighlightCursor: return UInt32(kVK_ANSI_S)
+        case .toggleAnnotateClean: return UInt32(kVK_ANSI_1)
+        case .toggleAnnotateWithToolbar: return UInt32(kVK_ANSI_2)
+        case .toggleClickHighlight: return UInt32(kVK_ANSI_3)
         case .clearAnnotations: return UInt32(kVK_ANSI_C)
         }
     }
 
     var modifiers: UInt32 {
         switch self {
-        case .toggleAnnotateClean: return UInt32(optionKey)
-        case .toggleAnnotateWithToolbar: return UInt32(optionKey | shiftKey)
-        case .toggleHighlightCursor: return UInt32(optionKey)
-        case .clearAnnotations: return UInt32(optionKey)
+        case .toggleAnnotateClean, .toggleAnnotateWithToolbar, .toggleClickHighlight:
+            return UInt32(cmdKey)
+        case .clearAnnotations:
+            return UInt32(optionKey)
         }
     }
 }

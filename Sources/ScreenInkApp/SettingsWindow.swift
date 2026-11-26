@@ -115,39 +115,37 @@ struct SettingsView: View {
                 }
 
                 Toggle("矩形内部淡色高亮填充", isOn: $session.preferences.fillRectangleHighlight)
-                Toggle("默认快捷键 (⌥A) 启动时显示工具栏", isOn: $session.preferences.showToolbarOnActivate)
+                Toggle("默认快捷键 (⌘1) 启动时显示工具栏", isOn: $session.preferences.showToolbarOnActivate)
             }
 
-            Section("光标高亮（Highlight Cursor）") {
+            Section("点击高亮（Click Highlight · 点击脉动后消失）") {
                 HStack {
-                    Text("光环直径")
-                    Slider(value: $session.preferences.cursorHighlightDiameter, in: 28...110, step: 2)
+                    Text("光环基准大小")
+                    Slider(value: $session.preferences.cursorHighlightDiameter, in: 36...120, step: 2)
                     Text("\(Int(session.preferences.cursorHighlightDiameter)) px")
                         .monospacedDigit()
                         .frame(width: 48, alignment: .trailing)
                 }
 
                 HStack {
-                    Text("光环透明度")
+                    Text("光环填充透明度")
                     Slider(value: $session.preferences.cursorHighlightOpacity, in: 0.12...0.75, step: 0.05)
                     Text("\(Int(session.preferences.cursorHighlightOpacity * 100))%")
                         .monospacedDigit()
                         .frame(width: 48, alignment: .trailing)
                 }
 
-                Toggle("光标颜色跟随高亮标注颜色", isOn: $session.preferences.cursorFollowAnnotationColor)
+                Toggle("光环颜色跟随高亮标注颜色", isOn: $session.preferences.cursorFollowAnnotationColor)
 
                 if !session.preferences.cursorFollowAnnotationColor {
-                    ColorPicker("光标独立高亮颜色", selection: cursorCustomColorBinding, supportsOpacity: false)
+                    ColorPicker("点击光环独立颜色", selection: cursorCustomColorBinding, supportsOpacity: false)
                 }
-
-                Toggle("鼠标点击时显示涟漪脉冲动画", isOn: $session.preferences.cursorClickRipple)
             }
 
             Section("快捷键速查") {
-                shortcutRow("矩形批注（无工具栏）", "⌥ A")
-                shortcutRow("带工具栏批注", "⌥ ⇧ A")
-                shortcutRow("光标高亮 Highlight Cursor", "⌥ S")
+                shortcutRow("无工具栏矩形批注", "⌘ 1")
+                shortcutRow("有工具栏矩形批注", "⌘ 2")
+                shortcutRow("点击高亮（脉动光环）", "⌘ 3")
                 shortcutRow("清除停留标注", "⌥ C")
                 shortcutRow("批注内切换：矩形 / 文字 / 自动淡出", "R / T / F")
                 shortcutRow("退出批注模式", "Esc")
