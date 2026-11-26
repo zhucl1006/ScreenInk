@@ -1,37 +1,65 @@
+import AppKit
 import Carbon
 import Foundation
+import ScreenInkCore
 
-/// 全局快捷键动作定义（任意应用生效，无需系统辅助功能权限）
-enum GlobalHotKeyAction: UInt32, CaseIterable {
-    /// ⌘1：无工具栏矩形批注
-    case toggleAnnotateClean = 1
-    /// ⌘2：有工具栏矩形批注
-    case toggleAnnotateWithToolbar = 2
-    /// ⌘3：点击高亮模式（点击时出现脉动光环后消失）
-    case toggleClickHighlight = 3
-    /// ⌥C：清空屏幕停留标注
-    case clearAnnotations = 4
-
-    var keyCode: UInt32 {
-        switch self {
-        case .toggleAnnotateClean: return UInt32(kVK_ANSI_1)
-        case .toggleAnnotateWithToolbar: return UInt32(kVK_ANSI_2)
-        case .toggleClickHighlight: return UInt32(kVK_ANSI_3)
-        case .clearAnnotations: return UInt32(kVK_ANSI_C)
-        }
+extension KeyModifiers {
+    /// 转换为 Carbon RegisterEventHotKey 修饰键掩码
+    var carbonFlags: UInt32 {
+        var flags: UInt32 = 0
+        if contains(.command) { flags |= UInt32(cmdKey) }
+        if contains(.option)  { flags |= UInt32(optionKey) }
+        if contains(.control) { flags |= UInt32(controlKey) }
+        if contains(.shift)   { flags |= UInt32(shiftKey) }
+        return flags
     }
 
-    var modifiers: UInt32 {
-        switch self {
-        case .toggleAnnotateClean, .toggleAnnotateWithToolbar, .toggleClickHighlight:
-            return UInt32(cmdKey)
-        case .clearAnnotations:
-            return UInt32(optionKey)
-        }
+    /// 转换为 AppKit NSEvent / NSMenuItem 修饰键掩码
+    var appKitFlags: NSEvent.ModifierFlags {
+        var flags: NSEvent.ModifierFlags = []
+        if contains(.command) { flags.insert(.command) }
+        if contains(.option)  { flags.insert(.option) }
+        if contains(.control) { flags.insert(.control) }
+        if contains(.shift)   { flags.insert(.shift) }
+        return flags
+    }
+
+    /// 从 AppKit NSEvent.ModifierFlags 提取标准快捷键修饰键
+    init(appKitFlags: NSEvent.ModifierFlags) {
+        var result: KeyModifiers = []
+        if appKitFlags.contains(.command) { result.insert(.command) }
+        if appKitFlags.contains(.option)  { result.insert(.option) }
+        if appKitFlags.contains(.control) { result.insert(.control) }
+        if appKitFlags.contains(.shift)   { result.insert(.shift) }
+        self = result
     }
 }
 
-/// Carbon RegisterEventHotKey 全局快捷键管理器
+extension KeyShortcut {
+    /// 从 NSEvent 构造快捷键对象
+    init(event: NSEvent) {
+        self.init(
+            keyCode: UInt32(event.keyCode),
+            modifiers: KeyModifiers(appKitFlags: event.modifierFlags)
+        )
+    }
+}
+
+extension NSMenuItem {
+    /// 将自定义快捷键同步到菜单项的右侧快捷提示
+    func apply(shortcut: KeyShortcut?) {
+        guard let shortcut else {
+            keyEquivalent = ""
+            keyEquivalentModifierMask = []
+            return
+        }
+        let equivalent = shortcut.menuKeyEquivalent
+        keyEquivalent = equivalent
+        keyEquivalentModifierMask = equivalent.isEmpty ? [] : shortcut.modifiers.appKitFlags
+    }
+}
+
+/// Carbon RegisterEventHotKey 动态全局快捷键管理器（支持运行时热更新、录制期挂起与占用检测）
 @MainActor
 final class GlobalHotKeyManager {
     private static let signature: OSType = 0x5349_4E4B // 'SINK'
@@ -39,13 +67,20 @@ final class GlobalHotKeyManager {
 
     private var eventHandlerRef: EventHandlerRef?
     private var hotKeyRefs: [EventHotKeyRef] = []
-    private let onAction: (GlobalHotKeyAction) -> Void
+    private var currentConfiguration: ShortcutConfiguration = .default
+    private var isSuspended: Bool = false
+    private let onAction: (ShortcutAction) -> Void
 
-    init(onAction: @escaping (GlobalHotKeyAction) -> Void) {
+    init(onAction: @escaping (ShortcutAction) -> Void) {
         self.onAction = onAction
     }
 
-    func registerAll() {
+    /// 注册全部全局快捷键，返回因被系统或其他应用占用而注册失败的动作集合
+    @discardableResult
+    func register(configuration: ShortcutConfiguration) -> Set<ShortcutAction> {
+        currentConfiguration = configuration
+        guard !isSuspended else { return [] }
+
         unregisterAll()
         Self.activeManager = self
 
@@ -68,7 +103,7 @@ final class GlobalHotKeyManager {
             )
             guard status == noErr,
                   hotKeyID.signature == GlobalHotKeyManager.signature,
-                  let action = GlobalHotKeyAction(rawValue: hotKeyID.id)
+                  let action = ShortcutAction.fromHotKeyID(hotKeyID.id)
             else {
                 return OSStatus(eventNotHandledErr)
             }
@@ -88,12 +123,19 @@ final class GlobalHotKeyManager {
             &eventHandlerRef
         )
 
-        for action in GlobalHotKeyAction.allCases {
+        var failedActions: Set<ShortcutAction> = []
+        for action in ShortcutAction.globalActions {
+            guard let hotKeyIDValue = action.hotKeyID,
+                  let shortcut = configuration[action]
+            else {
+                continue
+            }
+
             var hotKeyRef: EventHotKeyRef?
-            let hotKeyID = EventHotKeyID(signature: Self.signature, id: action.rawValue)
+            let hotKeyID = EventHotKeyID(signature: Self.signature, id: hotKeyIDValue)
             let status = RegisterEventHotKey(
-                action.keyCode,
-                action.modifiers,
+                shortcut.keyCode,
+                shortcut.modifiers.carbonFlags,
                 hotKeyID,
                 GetApplicationEventTarget(),
                 0,
@@ -101,7 +143,25 @@ final class GlobalHotKeyManager {
             )
             if status == noErr, let ref = hotKeyRef {
                 hotKeyRefs.append(ref)
+            } else {
+                failedActions.insert(action)
             }
+        }
+        return failedActions
+    }
+
+    /// 录制快捷键时临时挂起全局拦截，结束录制后自动恢复注册
+    @discardableResult
+    func setSuspended(_ suspended: Bool, configuration: ShortcutConfiguration? = nil) -> Set<ShortcutAction> {
+        if let configuration {
+            currentConfiguration = configuration
+        }
+        isSuspended = suspended
+        if suspended {
+            unregisterAll()
+            return []
+        } else {
+            return register(configuration: currentConfiguration)
         }
     }
 

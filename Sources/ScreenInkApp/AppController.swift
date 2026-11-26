@@ -60,22 +60,19 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
 
         let menu = NSMenu()
 
-        let cleanItem = NSMenuItem(title: "无工具栏矩形批注", action: #selector(menuAnnotateWithoutControls), keyEquivalent: "1")
-        cleanItem.keyEquivalentModifierMask = [.command]
+        let cleanItem = NSMenuItem(title: "无工具栏矩形批注", action: #selector(menuAnnotateWithoutControls), keyEquivalent: "")
         cleanItem.target = self
         menu.addItem(cleanItem)
         annotateCleanMenuItem = cleanItem
 
-        let withToolbarItem = NSMenuItem(title: "有工具栏矩形批注", action: #selector(menuAnnotateWithControls), keyEquivalent: "2")
-        withToolbarItem.keyEquivalentModifierMask = [.command]
+        let withToolbarItem = NSMenuItem(title: "有工具栏矩形批注", action: #selector(menuAnnotateWithControls), keyEquivalent: "")
         withToolbarItem.target = self
         menu.addItem(withToolbarItem)
         annotateToolbarMenuItem = withToolbarItem
 
         menu.addItem(.separator())
 
-        let cursorItem = NSMenuItem(title: "点击高亮（脉动光环）", action: #selector(menuToggleHighlightCursor), keyEquivalent: "3")
-        cursorItem.keyEquivalentModifierMask = [.command]
+        let cursorItem = NSMenuItem(title: "点击高亮（脉动光环）", action: #selector(menuToggleHighlightCursor), keyEquivalent: "")
         cursorItem.target = self
         menu.addItem(cursorItem)
         highlightCursorMenuItem = cursorItem
@@ -119,8 +116,7 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
         showToolbarMenuItem = toolbarToggle
 
         // 清空屏幕标注
-        let clearItem = NSMenuItem(title: "清空屏幕标注", action: #selector(menuClearAll), keyEquivalent: "c")
-        clearItem.keyEquivalentModifierMask = [.option]
+        let clearItem = NSMenuItem(title: "清空屏幕标注", action: #selector(menuClearAll), keyEquivalent: "")
         clearItem.target = self
         menu.addItem(clearItem)
         clearMenuItem = clearItem
@@ -138,6 +134,7 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
         menu.addItem(quitItem)
 
         statusItem.menu = menu
+        updateMenuShortcuts()
         updateMenuState()
     }
 
@@ -170,7 +167,17 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
             ?? NSImage(systemSymbolName: "pencil.tip.crop.circle", accessibilityDescription: "ScreenInk")
         image?.isTemplate = true
         button.image = image
-        button.toolTip = "ScreenInk — ⌘1 无工具栏矩形 | ⌘2 有工具栏矩形 | ⌘3 点击高亮"
+        let shortcuts = session.preferences.shortcuts
+        button.toolTip = "ScreenInk — \(shortcuts.displayString(for: .toggleAnnotateClean)) 无工具栏矩形 | \(shortcuts.displayString(for: .toggleAnnotateWithToolbar)) 有工具栏矩形 | \(shortcuts.displayString(for: .toggleClickHighlight)) 点击高亮"
+    }
+
+    private func updateMenuShortcuts() {
+        let shortcuts = session.preferences.shortcuts
+        annotateCleanMenuItem?.apply(shortcut: shortcuts[.toggleAnnotateClean])
+        annotateToolbarMenuItem?.apply(shortcut: shortcuts[.toggleAnnotateWithToolbar])
+        highlightCursorMenuItem?.apply(shortcut: shortcuts[.toggleClickHighlight])
+        clearMenuItem?.apply(shortcut: shortcuts[.clearAnnotations])
+        updateStatusIcon()
     }
 
     private func updateMenuState() {
@@ -235,7 +242,7 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
         hotKeyManager = GlobalHotKeyManager { [weak self] action in
             self?.handleGlobalHotKey(action)
         }
-        hotKeyManager.registerAll()
+        session.hotKeyRegistrationFailures = hotKeyManager.register(configuration: session.preferences.shortcuts)
     }
 
     private func observeSessionChanges() {
@@ -246,6 +253,36 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
                 self.cursorHighlightController.refreshAppearance()
                 self.updateMenuState()
                 self.refreshAllCanvases()
+            }
+            .store(in: &cancellables)
+
+        session.$preferences
+            .map(\.shortcuts)
+            .removeDuplicates()
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] shortcuts in
+                guard let self else { return }
+                self.updateMenuShortcuts()
+                if !self.session.isRecordingShortcut {
+                    self.session.hotKeyRegistrationFailures = self.hotKeyManager.register(configuration: shortcuts)
+                }
+            }
+            .store(in: &cancellables)
+
+        session.$isRecordingShortcut
+            .removeDuplicates()
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] isRecording in
+                guard let self else { return }
+                let failures = self.hotKeyManager.setSuspended(
+                    isRecording,
+                    configuration: self.session.preferences.shortcuts
+                )
+                if !isRecording {
+                    self.session.hotKeyRegistrationFailures = failures
+                }
             }
             .store(in: &cancellables)
 
@@ -329,7 +366,7 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
         }
     }
 
-    private func handleGlobalHotKey(_ action: GlobalHotKeyAction) {
+    private func handleGlobalHotKey(_ action: ShortcutAction) {
         switch action {
         case .toggleAnnotateClean:
             if session.phase == .annotating {
@@ -358,6 +395,9 @@ final class AppController: NSObject, NSApplicationDelegate, CanvasViewDelegate {
 
         case .clearAnnotations:
             clearAllCanvases()
+
+        case .selectRectangle, .selectText, .toggleRetentionMode:
+            break
         }
     }
 

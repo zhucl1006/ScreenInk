@@ -181,10 +181,10 @@ final class CanvasView: NSView {
     // MARK: - 键盘快捷键（批注模式下）
 
     override func keyDown(with event: NSEvent) {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let input = KeyShortcut(event: event)
 
-        // Esc：取消文字输入或退出批注
-        if event.keyCode == 53 {
+        // Esc：固定用于取消文字输入或退出批注
+        if input.keyCode == KeyCodeTable.escape && input.modifiers.isEmpty {
             if inlineTextView != nil {
                 cancelInlineText()
             } else {
@@ -193,40 +193,36 @@ final class CanvasView: NSView {
             return
         }
 
-        if flags.contains(.command) {
-            let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
-            if key == "z" {
-                let changed = flags.contains(.shift) ? state.redo() : state.undo()
-                if changed {
-                    delegate?.canvasDidChangeContentState(self)
-                    needsDisplay = true
-                }
-                return
+        // ⌘Z / ⇧⌘Z：固定用于撤销与重做
+        if input.keyCode == KeyCodeTable.z && (input.modifiers == .command || input.modifiers == [.command, .shift]) {
+            let changed = input.modifiers.contains(.shift) ? state.redo() : state.undo()
+            if changed {
+                delegate?.canvasDidChangeContentState(self)
+                needsDisplay = true
             }
-            if key == "k" {
-                delegate?.canvasDidRequestClearAll()
-                return
-            }
+            return
         }
 
-        if flags.isEmpty || flags == .numericPad {
-            let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
-            switch key {
-            case "r", "1":
+        // 优先匹配用户自定义的批注内快捷键
+        let shortcuts = session.preferences.shortcuts
+        if let matchedAction = shortcuts.matchingCanvasAction(for: input) {
+            switch matchedAction {
+            case .selectRectangle:
                 delegate?.canvasDidSelectTool(.rectangle)
-                return
-            case "t", "2":
+            case .selectText:
                 delegate?.canvasDidSelectTool(.text)
-                return
-            case "f":
+            case .toggleRetentionMode:
                 delegate?.canvasDidToggleRetentionMode()
-                return
-            case "c":
-                delegate?.canvasDidRequestClearAll()
-                return
             default:
                 break
             }
+            return
+        }
+
+        // 清空屏幕标注快捷键在画布内兜底触发（即使全局注册被系统占用也能在批注内使用）
+        if shortcuts.clearAnnotations == input || (input.keyCode == KeyCodeTable.k && input.modifiers == .command) {
+            delegate?.canvasDidRequestClearAll()
+            return
         }
 
         super.keyDown(with: event)

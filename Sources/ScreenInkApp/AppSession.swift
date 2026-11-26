@@ -19,6 +19,10 @@ final class AppSession: ObservableObject {
     @Published var canUndo: Bool = false
     @Published var canRedo: Bool = false
     @Published var hasPersistentContent: Bool = false
+    /// 当前是否正在偏好设置中录制快捷键（录制期间暂停全局热键拦截）
+    @Published var isRecordingShortcut: Bool = false
+    /// 全局热键注册失败（被系统或其他应用占用）的动作集合
+    @Published var hotKeyRegistrationFailures: Set<ShortcutAction> = []
 
     init(preferences: AppPreferences = PreferencesStore.load()) {
         self.preferences = preferences

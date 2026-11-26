@@ -18,6 +18,40 @@ public struct AppPreferences: Codable, Equatable, Sendable {
     public var cursorFollowAnnotationColor: Bool
     public var cursorCustomColor: RGBAColor
     public var cursorClickRipple: Bool
+    /// 用户自定义快捷键配置（全局热键 + 批注内快捷键）
+    public var shortcuts: ShortcutConfiguration
+
+    public init(
+        highlightColor: RGBAColor,
+        lineWidth: CGFloat,
+        cornerRadius: CGFloat,
+        fillRectangleHighlight: Bool,
+        retentionMode: RetentionMode,
+        autoFadeHoldSeconds: Double,
+        autoFadeDurationSeconds: Double,
+        showToolbarOnActivate: Bool,
+        cursorHighlightDiameter: CGFloat,
+        cursorHighlightOpacity: Double,
+        cursorFollowAnnotationColor: Bool,
+        cursorCustomColor: RGBAColor,
+        cursorClickRipple: Bool,
+        shortcuts: ShortcutConfiguration = .default
+    ) {
+        self.highlightColor = highlightColor
+        self.lineWidth = lineWidth
+        self.cornerRadius = cornerRadius
+        self.fillRectangleHighlight = fillRectangleHighlight
+        self.retentionMode = retentionMode
+        self.autoFadeHoldSeconds = autoFadeHoldSeconds
+        self.autoFadeDurationSeconds = autoFadeDurationSeconds
+        self.showToolbarOnActivate = showToolbarOnActivate
+        self.cursorHighlightDiameter = cursorHighlightDiameter
+        self.cursorHighlightOpacity = cursorHighlightOpacity
+        self.cursorFollowAnnotationColor = cursorFollowAnnotationColor
+        self.cursorCustomColor = cursorCustomColor
+        self.cursorClickRipple = cursorClickRipple
+        self.shortcuts = shortcuts
+    }
 
     public static let `default` = AppPreferences(
         highlightColor: .red,
@@ -32,11 +66,49 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         cursorHighlightOpacity: 0.45,
         cursorFollowAnnotationColor: true,
         cursorCustomColor: .yellow,
-        cursorClickRipple: true
+        cursorClickRipple: true,
+        shortcuts: .default
     )
 
     public var effectiveCursorColor: RGBAColor {
         cursorFollowAnnotationColor ? highlightColor : cursorCustomColor
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case highlightColor
+        case lineWidth
+        case cornerRadius
+        case fillRectangleHighlight
+        case retentionMode
+        case autoFadeHoldSeconds
+        case autoFadeDurationSeconds
+        case showToolbarOnActivate
+        case cursorHighlightDiameter
+        case cursorHighlightOpacity
+        case cursorFollowAnnotationColor
+        case cursorCustomColor
+        case cursorClickRipple
+        case shortcuts
+    }
+
+    /// 兼容旧版偏好 JSON（新增字段缺省回退默认值，不丢失用户历史设置）
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let d = Self.default
+        self.highlightColor = try c.decodeIfPresent(RGBAColor.self, forKey: .highlightColor) ?? d.highlightColor
+        self.lineWidth = try c.decodeIfPresent(CGFloat.self, forKey: .lineWidth) ?? d.lineWidth
+        self.cornerRadius = try c.decodeIfPresent(CGFloat.self, forKey: .cornerRadius) ?? d.cornerRadius
+        self.fillRectangleHighlight = try c.decodeIfPresent(Bool.self, forKey: .fillRectangleHighlight) ?? d.fillRectangleHighlight
+        self.retentionMode = try c.decodeIfPresent(RetentionMode.self, forKey: .retentionMode) ?? d.retentionMode
+        self.autoFadeHoldSeconds = try c.decodeIfPresent(Double.self, forKey: .autoFadeHoldSeconds) ?? d.autoFadeHoldSeconds
+        self.autoFadeDurationSeconds = try c.decodeIfPresent(Double.self, forKey: .autoFadeDurationSeconds) ?? d.autoFadeDurationSeconds
+        self.showToolbarOnActivate = try c.decodeIfPresent(Bool.self, forKey: .showToolbarOnActivate) ?? d.showToolbarOnActivate
+        self.cursorHighlightDiameter = try c.decodeIfPresent(CGFloat.self, forKey: .cursorHighlightDiameter) ?? d.cursorHighlightDiameter
+        self.cursorHighlightOpacity = try c.decodeIfPresent(Double.self, forKey: .cursorHighlightOpacity) ?? d.cursorHighlightOpacity
+        self.cursorFollowAnnotationColor = try c.decodeIfPresent(Bool.self, forKey: .cursorFollowAnnotationColor) ?? d.cursorFollowAnnotationColor
+        self.cursorCustomColor = try c.decodeIfPresent(RGBAColor.self, forKey: .cursorCustomColor) ?? d.cursorCustomColor
+        self.cursorClickRipple = try c.decodeIfPresent(Bool.self, forKey: .cursorClickRipple) ?? d.cursorClickRipple
+        self.shortcuts = try c.decodeIfPresent(ShortcutConfiguration.self, forKey: .shortcuts) ?? d.shortcuts
     }
 }
 

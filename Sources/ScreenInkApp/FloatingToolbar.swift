@@ -110,13 +110,13 @@ struct FloatingToolbarView: View {
                 )
             }
             .buttonStyle(.plain)
-            .help("切换自动淡出 / 停留模式 (F)")
+            .help("切换自动淡出 / 停留模式\(shortcutSuffix(.toggleRetentionMode))")
 
             if session.hasPersistentContent || session.preferences.retentionMode == .persistent {
                 iconButton(
                     systemName: "trash",
                     isEnabled: session.hasPersistentContent,
-                    help: "清除停留标注 (⌥C)",
+                    help: "清除停留标注\(shortcutSuffix(.clearAnnotations))",
                     action: onClear
                 )
             }
@@ -124,7 +124,7 @@ struct FloatingToolbarView: View {
             divider
 
             iconButton(systemName: "gearshape", help: "偏好设置 (⌘,)", action: onOpenSettings)
-            iconButton(systemName: "xmark.circle.fill", help: "退出批注 (Esc / ⌘1)", action: onExitAnnotating)
+            iconButton(systemName: "xmark.circle.fill", help: exitHelpText, action: onExitAnnotating)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -156,7 +156,21 @@ struct FloatingToolbarView: View {
             .foregroundStyle(isSelected ? .white : .primary)
         }
         .buttonStyle(.plain)
-        .help("\(tool.displayName) (\(tool.shortcutHint))")
+        .help("\(tool.displayName)\(shortcutSuffix(tool == .rectangle ? .selectRectangle : .selectText))")
+    }
+
+    private func shortcutSuffix(_ action: ShortcutAction) -> String {
+        guard let display = session.preferences.shortcuts[action]?.displayString else {
+            return ""
+        }
+        return " (\(display))"
+    }
+
+    private var exitHelpText: String {
+        if let clean = session.preferences.shortcuts[.toggleAnnotateClean]?.displayString {
+            return "退出批注 (Esc / \(clean))"
+        }
+        return "退出批注 (Esc)"
     }
 
     private func colorDot(_ color: RGBAColor, name: String) -> some View {
