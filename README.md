@@ -11,6 +11,22 @@
 
 ---
 
+## 产品演示（40 秒速览）
+
+<p align="center">
+  <a href="https://github.com/zhucl1006/ScreenInk/raw/main/docs/media/screenink-demo.mp4" title="点击观看/下载 40 秒完整带声演示视频">
+    <img src="docs/media/screenink-demo.gif" alt="ScreenInk 产品演示动画" width="820" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/zhucl1006/ScreenInk/raw/main/docs/media/screenink-demo.mp4"><strong>▶ 观看 / 下载完整 40 秒高清带声演示视频（MP4）</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/zhucl1006/ScreenInk/releases/latest"><strong>⬇ 前往 Releases 下载最新版本（DMG / ZIP）</strong></a>
+</p>
+
+---
+
 ## 这是什么？为什么做它？
 
 开会共享屏幕（Zoom / 腾讯会议 / 飞书 / Teams / Google Meet）或做产品/代码演示时，你是不是经常遇到这些痛点：
@@ -38,6 +54,35 @@
 | **矩形 & 文字标注** | 只保留会议最常用的两种标注：发光圆角高亮矩形 + 带半透明深色底板的清晰文字标注（支持中英文输入法） |
 | **自动淡出 / 停留模式** | 默认**自动淡出**（停留时长 `0.5s–8.0s` 可调）；也可切换为**停留模式**，退出批注后笔迹保留且鼠标穿透，随时 `⌥C` 一键清除 |
 | **自由选色与偏好设置** | 7 种高频高亮预设色 + 系统任意取色器，支持自定义边框粗细、矩形内部淡色填充、光环大小/透明度与全量自定义快捷键，自动持久化保存 |
+
+### 功能画面预览
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/media/feature-highlight.png" alt="无工具栏矩形高亮与自动淡出" />
+      <br />
+      <sub><strong>无工具栏高亮 + 2 秒自动淡出（默认 <code>⌘1</code>）</strong></sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/media/feature-toolbar.png" alt="极简毛玻璃浮动工具栏与文字标注" />
+      <br />
+      <sub><strong>按需浮动工具栏、文字标注与停留模式（默认 <code>⌘2</code>）</strong></sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/media/feature-pulse.png" alt="点击脉动光环" />
+      <br />
+      <sub><strong>点击脉动光环：平时隐形，点击即亮（默认 <code>⌘3</code>）</strong></sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/media/feature-hotkeys.png" alt="自定义快捷键设置" />
+      <br />
+      <sub><strong>偏好设置：全量自定义快捷键与冲突检测（<code>⌘,</code>）</strong></sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
