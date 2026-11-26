@@ -1,0 +1,105 @@
+name: Build & Release macOS App
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build & Package ScreenInk (macOS)
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve version metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            RAW_TAG="${GITHUB_REF_NAME}"
+            VERSION="${RAW_TAG#v}"
+            echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+            echo "release_tag=${RAW_TAG}" >> "$GITHUB_OUTPUT"
+            echo "release_name=ScreenInk ${RAW_TAG}" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            SHORT_SHA="${GITHUB_SHA::7}"
+            echo "version=0.2.0-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+            echo "release_tag=latest" >> "$GITHUB_OUTPUT"
+            echo "release_name=ScreenInk Latest Build" >> "$GITHUB_OUTPUT"
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run unit tests
+        run: swift test
+
+      - name: Build .app, .zip, and .dmg
+        env:
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          chmod +x scripts/build_app.sh
+          ./scripts/build_app.sh
+          shasum -a 256 build/ScreenInk-macOS.dmg build/ScreenInk-macOS.zip > build/SHA256SUMS.txt
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScreenInk-macOS-${{ steps.meta.outputs.version }}
+          path: |
+            build/ScreenInk-macOS.dmg
+            build/ScreenInk-macOS.zip
+            build/SHA256SUMS.txt
+          retention-days: 30
+
+      - name: Publish rolling Latest Release on main push
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          target_commitish: ${{ github.sha }}
+          name: ScreenInk Latest Build
+          prerelease: true
+          make_latest: "true"
+          body: |
+            由 GitHub Actions 自动编译打包的最新版本（Commit `${{ github.sha }}`）。
+
+            ### 下载与安装
+            1. 下载下方 **`ScreenInk-macOS.dmg`**（推荐）或 `ScreenInk-macOS.zip`。
+            2. 打开 DMG，将 **ScreenInk.app** 拖入 `Applications` 文件夹。
+            3. 首次启动如提示“无法验证开发者”，在终端执行一次：
+               ```bash
+               xattr -cr /Applications/ScreenInk.app
+               ```
+               或在「系统设置 → 隐私与安全性」中点击“仍要打开”。
+          files: |
+            build/ScreenInk-macOS.dmg
+            build/ScreenInk-macOS.zip
+            build/SHA256SUMS.txt
+
+      - name: Publish Versioned Release on Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          name: ${{ steps.meta.outputs.release_name }}
+          generate_release_notes: true
+          make_latest: "true"
+          files: |
+            build/ScreenInk-macOS.dmg
+            build/ScreenInk-macOS.zip
+            build/SHA256SUMS.txt
