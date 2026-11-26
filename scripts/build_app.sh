@@ -6,6 +6,7 @@ APP_NAME="ScreenInk"
 BUNDLE_ID="com.screenink.overlay"
 APP_VERSION="${APP_VERSION:-0.2.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
+BUILD_UNIVERSAL="${BUILD_UNIVERSAL:-1}"
 BUILD_DIR="$ROOT_DIR/build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONTENTS_DIR="$APP_BUNDLE/Contents"
@@ -14,15 +15,24 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 ZIP_PATH="$BUILD_DIR/${APP_NAME}-macOS.zip"
 DMG_PATH="$BUILD_DIR/${APP_NAME}-macOS.dmg"
 
-echo "==> 1. Building $APP_NAME ($APP_VERSION) in Release mode..."
 cd "$ROOT_DIR"
-swift build -c release
 
-BIN_PATH="$(swift build -c release --show-bin-path)/$APP_NAME"
+if [[ "$BUILD_UNIVERSAL" == "1" ]]; then
+  echo "==> 1. Building $APP_NAME ($APP_VERSION) Universal Binary (arm64 + x86_64)..."
+  swift build -c release --arch arm64 --arch x86_64
+  BIN_PATH="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/$APP_NAME"
+else
+  echo "==> 1. Building $APP_NAME ($APP_VERSION) in Release mode..."
+  swift build -c release
+  BIN_PATH="$(swift build -c release --show-bin-path)/$APP_NAME"
+fi
+
 if [[ ! -f "$BIN_PATH" ]]; then
   echo "Error: Binary not found at $BIN_PATH"
   exit 1
 fi
+
+file "$BIN_PATH"
 
 echo "==> 2. Generating AppIcon.icns..."
 ICON_WORK="$BUILD_DIR/icon_work"

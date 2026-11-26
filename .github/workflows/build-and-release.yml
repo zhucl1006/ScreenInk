@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build-macos:
-    name: Build & Package ScreenInk (macOS)
+    name: Build & Package ScreenInk (macOS Universal)
     runs-on: macos-15
 
     steps:
@@ -35,22 +35,21 @@ jobs:
             echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
             echo "release_tag=${RAW_TAG}" >> "$GITHUB_OUTPUT"
             echo "release_name=ScreenInk ${RAW_TAG}" >> "$GITHUB_OUTPUT"
-            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
           else
             SHORT_SHA="${GITHUB_SHA::7}"
             echo "version=0.2.0-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
             echo "release_tag=latest" >> "$GITHUB_OUTPUT"
-            echo "release_name=ScreenInk Latest Build" >> "$GITHUB_OUTPUT"
-            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "release_name=ScreenInk Latest (macOS Universal)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run unit tests
         run: swift test
 
-      - name: Build .app, .zip, and .dmg
+      - name: Build Universal .app, .zip, and .dmg
         env:
           APP_VERSION: ${{ steps.meta.outputs.version }}
           BUILD_NUMBER: ${{ github.run_number }}
+          BUILD_UNIVERSAL: "1"
         run: |
           chmod +x scripts/build_app.sh
           ./scripts/build_app.sh
@@ -67,25 +66,32 @@ jobs:
           retention-days: 30
 
       - name: Publish rolling Latest Release on main push
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           target_commitish: ${{ github.sha }}
-          name: ScreenInk Latest Build
-          prerelease: true
+          name: ScreenInk Latest (macOS Universal)
+          prerelease: false
           make_latest: "true"
+          overwrite_files: true
           body: |
-            由 GitHub Actions 自动编译打包的最新版本（Commit `${{ github.sha }}`）。
+            由 GitHub Actions 自动编译打包的最新版本（支持 **Apple Silicon & Intel Mac**，Commit `${{ github.sha }}`）。
 
-            ### 下载与安装
+            ### 快速下载与安装
             1. 下载下方 **`ScreenInk-macOS.dmg`**（推荐）或 `ScreenInk-macOS.zip`。
-            2. 打开 DMG，将 **ScreenInk.app** 拖入 `Applications` 文件夹。
-            3. 首次启动如提示“无法验证开发者”，在终端执行一次：
+            2. 双击打开 DMG，将 **ScreenInk.app** 拖入 `Applications` 文件夹并启动（顶部菜单栏会出现高亮框图标）。
+            3. 首次启动若 macOS 提示“无法验证开发者”（开源免费应用使用 ad-hoc 签名），执行一次下方命令即可放行：
                ```bash
                xattr -cr /Applications/ScreenInk.app
                ```
-               或在「系统设置 → 隐私与安全性」中点击“仍要打开”。
+               或在「系统设置 → 隐私与安全性」中点击 **仍要打开**。
+
+            ### 快捷键速查
+            - `⌘1`：无工具栏矩形高亮批注（默认自动淡出）
+            - `⌘2`：有工具栏矩形 / 文字批注
+            - `⌘3`：点击高亮（鼠标点击时出现脉动光环后消失）
+            - `⌥C`：清空停留标注 | `Esc`：退出批注
           files: |
             build/ScreenInk-macOS.dmg
             build/ScreenInk-macOS.zip
@@ -99,6 +105,7 @@ jobs:
           name: ${{ steps.meta.outputs.release_name }}
           generate_release_notes: true
           make_latest: "true"
+          overwrite_files: true
           files: |
             build/ScreenInk-macOS.dmg
             build/ScreenInk-macOS.zip
